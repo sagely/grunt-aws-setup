@@ -1,0 +1,108 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description" : "VPC Stack",
+
+  "Resources": {
+
+    "TestVPC": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": "172.32.0.0/16",
+        "EnableDnsSupport": true,
+        "EnableDnsHostnames": true,
+        "InstanceTenancy": "default"
+      }
+    },
+
+    "VPCSubnetA": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": { "Fn::Join": ["", [ { "Ref": "AWS::Region" }, "a" ]] },
+        "CidrBlock": "172.32.32.0/20",
+        "VpcId": { "Ref": "TestVPC" }
+      }
+    },
+
+    "VPCSubnetB": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": { "Fn::Join": ["", [ { "Ref": "AWS::Region" }, "b" ]] },
+        "CidrBlock": "172.32.16.0/20",
+        "VpcId": { "Ref": "TestVPC" }
+      }
+    },
+
+    "VPCSubnetC": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": { "Fn::Join": ["", [ { "Ref": "AWS::Region" }, "c" ]] },
+        "CidrBlock": "172.32.0.0/20",
+        "VpcId": { "Ref": "TestVPC" }
+      }
+    },
+
+    "InternetGateway": {
+      "Type": "AWS::EC2::InternetGateway"
+    },
+
+    "AttachGateway": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "InternetGatewayId": { "Ref": "InternetGateway" },
+        "VpcId": { "Ref": "TestVPC" }
+      }
+    },
+
+    "RouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": { "Ref": "TestVPC" }
+      }
+    },
+
+    "Route": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": "AttachGateway",
+      "Properties": {
+        "RouteTableId": { "Ref": "RouteTable" },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": { "Ref": "InternetGateway" }
+      }
+    },
+
+    "SubnetRouteTableAssociationA": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "VPCSubnetA" },
+        "RouteTableId": { "Ref": "RouteTable" }
+      }
+    },
+
+    "SubnetRouteTableAssociationB": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "VPCSubnetB" },
+        "RouteTableId": { "Ref": "RouteTable" }
+      }
+    },
+
+    "SubnetRouteTableAssociationC": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "SubnetId": { "Ref": "VPCSubnetC" },
+        "RouteTableId": { "Ref": "RouteTable" }
+      }
+    }
+  },
+
+  "Outputs": {
+    "VpcId": {
+      "Value": { "Ref": "TestVPC" },
+      "Description": "Id of the VPC created by this stack."
+    },
+    "VpcSubnets": {
+      "Value": { "Fn::Join": [ ",", [ { "Ref": "VPCSubnetA" }, { "Ref": "VPCSubnetB" }, { "Ref": "VPCSubnetC" } ]] },
+      "Description": "A list of subnet IDs created by this stack."
+    }
+  }
+}
