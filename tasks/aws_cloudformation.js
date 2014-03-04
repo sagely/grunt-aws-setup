@@ -115,29 +115,30 @@ module.exports = function(grunt) {
         return;
       }
       switch (status) {
-      case 'CREATE_FAILED':
-      case 'UPDATE_ROLLBACK_FAILED':
-      case 'UPDATE_ROLLBACK_COMPLETE':
-        grunt.log.error('CloudFormation Failed.');
-        grunt.log.error('Status: ' + status);
-        if (reason) {
-          grunt.log.error('Reason: ' + reason);
+        case 'CREATE_FAILED':
+        case 'UPDATE_ROLLBACK_FAILED':
+        case 'UPDATE_ROLLBACK_COMPLETE':
+        case 'ROLLBACK_COMPLETE':
+          grunt.log.error('CloudFormation Failed.');
+          grunt.log.error('Status: ' + status);
+          if (reason) {
+            grunt.log.error('Reason: ' + reason);
+          }
+          done(false);
+          break;
+        default:
+          grunt.log.writeln('CloudFormation Complete.');
+          grunt.log.writeln('Status: ' + status);
+          if (reason) {
+            grunt.log.writeln('Reason: ' + reason);
+          }
+          var configOutput = {};
+          _.each(outputs, function (output) {
+            configOutput[output.OutputKey] = output.OutputValue;
+          });
+          grunt.config.set(options.configVariable, configOutput);
+          done();
         }
-        done(false);
-        break;
-      default:
-        grunt.log.writeln('CloudFormation Complete.');
-        grunt.log.writeln('Status: ' + status);
-        if (reason) {
-          grunt.log.writeln('Reason: ' + reason);
-        }
-        var configOutput = {};
-        _.each(outputs, function (output) {
-          configOutput[output.OutputKey] = output.OutputValue;
-        });
-        grunt.config.set(options.configVariable, configOutput);
-        done();
-      }
     });
   });
 };
