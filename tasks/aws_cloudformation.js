@@ -43,6 +43,7 @@ module.exports = function(grunt) {
 
     var done = this.async();
     var cf = new AWS.CloudFormation({ region: options.region });
+    var noUpdateFlag = false;
 
     async.waterfall([
       // check to see if the stack exists and create or update it
@@ -85,7 +86,7 @@ module.exports = function(grunt) {
       },
       // wait until it is complete
       function (data, callback) {
-        var noUpdateFlag = (data === 'NO_UPDATES');
+        noUpdateFlag = (data === 'NO_UPDATES');
         var status, reason, outputs;
         grunt.log.write('Waiting ');
         async.doUntil(function (callback) {
@@ -113,6 +114,10 @@ module.exports = function(grunt) {
         grunt.log.error('An error occurred: ' + JSON.stringify(err, null, 2));
         done(false);
         return;
+      }
+      // if no updates were made, ignore the status
+      if (noUpdateFlag) {
+        status = 'NO_UPDATE';
       }
       switch (status) {
         case 'CREATE_FAILED':
