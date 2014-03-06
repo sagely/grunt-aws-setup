@@ -26,15 +26,17 @@
   "scripts": {
     "test": "grunt test"
   },
-  "devDependencies": {
+  "dependencies": {
     "async": "0.2.10",
     "aws-sdk": "1.18.0",
+    "lodash": "2.4.1",
+    "underscore.string": "2.3.3"
+  },
+  "devDependencies": {
     "grunt-contrib-jshint": "~0.6.0",
     "grunt-contrib-clean": "~0.4.0",
     "grunt-contrib-nodeunit": "~0.2.0",
-    "grunt": "~0.4.2",
-    "lodash": "2.4.1",
-    "underscore.string": "2.3.3"
+    "grunt": "~0.4.2"
   },
   "peerDependencies": {
     "grunt": "~0.4.2"
