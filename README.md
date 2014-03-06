@@ -129,6 +129,83 @@ grunt.initConfig({
 });
 ```
 
+## The "aws_ssl" task
+
+### Overview
+The `aws_ssl` task creates an SSL key in an AWS account. If a key
+with the same certificate name exists, nothing happens.
+
+Note that this Grunt task uses the AWS SDK for Node.js and expects
+configuration to be supplied externally. For example, you could run
+this task on an EC2 instance with an IAM role, or you could use
+environment variables to configure the credentials.
+
+In your project's Gruntfile, add a section named `aws_ssl`
+to the data object passed into `grunt.initConfig()`.
+
+```js
+grunt.initConfig({
+  aws_ssl: {
+    options: {
+      // Task-specific options go here.
+    },
+    your_target: {
+      // Target-specific file lists and/or options go here.
+    },
+  },
+});
+```
+
+### Options
+
+#### options.certificateName
+Type: `String`
+
+The name of the SSL certificate.
+
+#### options.certificateBodyFile
+Type: `String`
+
+The name of a file containing the public key certificate in
+PEM-encoded format.
+
+#### options.privateKeyFile
+Type: `String`
+
+The name of a file containing the private key in PEM-encoded format.
+
+#### options.certificateChainFile
+Type: `String`
+
+The name of a file containing the certificate chain. This is typically
+a concatenation of the PEM-encoded public key certificates of the
+chain.
+
+#### options.path
+Type: `String`
+
+An optional IAM path for the certificate.
+
+### Usage Example
+
+In this example, an SSL certificate is created based on files in the
+`etc` folder.
+
+```js
+grunt.initConfig({
+  aws_ssl: {
+    vpc: {
+      options: {
+        certificateName: 'Wildcard',
+        certificateBodyFile: 'etc/cert.crt',
+        certificateChainFile: 'etc/chain.ca-bundle',
+        privateKeyFile: 'etc/private-key.pem'
+      }
+    }
+  }
+});
+```
+
 ## Contributing
 In lieu of a formal styleguide, take care to maintain the existing coding style. Add unit tests for any new or changed functionality. Lint and test your code using [Grunt](http://gruntjs.com/).
 
