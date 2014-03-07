@@ -37,7 +37,7 @@ module.exports = function(grunt) {
     }
 
     if (!grunt.file.isFile(options.definitionFile)) {
-      grunt.log.error('Cloud not find definitionFile.');
+      grunt.log.error('Could not find definitionFile.');
       return;
     }
 

@@ -41,6 +41,21 @@ module.exports = function(grunt) {
       return;
     }
 
+    if (!grunt.file.isFile(options.certificateBodyFile)) {
+      grunt.log.error('Could not find certificateBodyFile.');
+      return;
+    }
+
+    if (!grunt.file.isFile(options.privateKeyFile)) {
+      grunt.log.error('Could not find privateKeyFile.');
+      return;
+    }
+
+    if (options.certificateChainFile && !grunt.file.isFile(options.certificateChainFile)) {
+      grunt.log.error('Could not find certificateChainFile.');
+      return;
+    }
+
     var done = this.async();
     var iam = new AWS.IAM();
 
