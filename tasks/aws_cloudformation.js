@@ -88,19 +88,33 @@ module.exports = function(grunt) {
       function (data, callback) {
         noUpdateFlag = (data === 'NO_UPDATES');
         var status, reason, outputs;
-        grunt.log.write('Waiting ');
+        var events = [];
+        grunt.log.writeln('Starting...');
         async.doUntil(function (callback) {
-          grunt.log.write('.');
-          cf.describeStacks({ StackName: options.stackName }, function (err, data) {
+          cf.describeStackEvents({ StackName: options.stackName }, function (err, data) {
             if (err) {
-              callback(err);
-              return;
+              grunt.log.writeln('Error:', err);
             }
-            status = data.Stacks[0].StackStatus;
-            reason = data.Stacks[0].StackStatusReason;
-            outputs = data.Stacks[0].Outputs;
-            
-            setTimeout(callback, noUpdateFlag ? 1 : 5000);
+            // Ignore errors
+            if (data && data.StackEvents) {
+              var newEvents = _.difference(_.pluck(data.StackEvents, 'EventId'), _.pluck(events, 'EventId'));
+              _.forEach(newEvents, function (item) {
+                var newEvent = _.find(data.StackEvents, {'EventId': item});
+                events.push(newEvent);
+                grunt.log.writeln(newEvent.ResourceType, ' - ', newEvent.LogicalResourceId, ' - ', newEvent.ResourceStatus);
+              });
+            }
+            cf.describeStacks({ StackName: options.stackName }, function (err, data) {
+              if (err) {
+                callback(err);
+                return;
+              }
+              status = data.Stacks[0].StackStatus;
+              reason = data.Stacks[0].StackStatusReason;
+              outputs = data.Stacks[0].Outputs;
+              
+              setTimeout(callback, noUpdateFlag ? 1 : 5000);
+            });
           });
         }, function () {
           return _.endsWith(status, 'COMPLETE') || _.endsWith(status, 'FAILED');
@@ -138,7 +152,10 @@ module.exports = function(grunt) {
             grunt.log.writeln('Reason: ' + reason);
           }
           var configOutput = {};
+          grunt.log.writeln(' Outputs');
+          grunt.log.writeln('---------');
           _.each(outputs, function (output) {
+            grunt.log.writeln(output.OutputKey + ' = ' + output.OutputValue);
             configOutput[output.OutputKey] = output.OutputValue;
           });
           grunt.config.set(options.configVariable, configOutput);
