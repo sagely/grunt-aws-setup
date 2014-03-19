@@ -42,12 +42,42 @@ module.exports = function(grunt) {
     }
 
     var done = this.async();
-    var cf = new AWS.CloudFormation({ region: options.region });
+    var cf;
     var noUpdateFlag = false;
 
     async.waterfall([
+      // Check if this should be run on another account
+      function (callback) {
+        if (!options.assumeRole) {
+          cf = new AWS.CloudFormation({ region: options.region });
+          grunt.verbose.writeln('No assumeRole provided');
+          callback();
+          return;
+        }
+        grunt.verbose.writeln('Assuming roll: ' + options.assumeRole);
+        var sts = new AWS.STS();
+        sts.assumeRole({
+          RoleArn: options.assumeRole,
+          RoleSessionName:'GruntSession'
+        }, function (err, data) {
+          if (err) {
+            callback(err);
+            return;
+          }
+          cf = new AWS.CloudFormation({
+            region: options.region,
+            accessKeyId: data.Credentials.AccessKeyId,
+            secretAccessKey: data.Credentials.SecretAccessKey,
+            sessionToken: data.Credentials.SessionToken
+          });
+          callback();
+        });
+      },
+
       // check to see if the stack exists and create or update it
-      _.bind(cf.describeStacks, cf, { }),
+      function (callback) {
+        cf.describeStacks(callback);
+      },
       function (data, callback) {
         var stack = _.findWhere(data.Stacks, { StackName: options.stackName });
         var params = {
