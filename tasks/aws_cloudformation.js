@@ -54,7 +54,7 @@ module.exports = function(grunt) {
           callback();
           return;
         }
-        grunt.verbose.writeln('Assuming roll: ' + options.assumeRole);
+        grunt.log.writeln('Assuming roll: ' + options.assumeRole);
         var sts = new AWS.STS();
         sts.assumeRole({
           RoleArn: options.assumeRole,
