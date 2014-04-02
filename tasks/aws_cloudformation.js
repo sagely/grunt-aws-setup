@@ -42,8 +42,32 @@ module.exports = function(grunt) {
     }
 
     var done = this.async();
+
+    // load all events, taking into account the next token returned
+    // by the server; caches previously loaded events so we can
+    // always start from the last retrieved token
+    var nextEventToken, allEvents = [];
+    var loadAllEvents = function(callback) {
+      async.doUntil(function (callback) {
+        var opts = { StackName: options.stackName };
+        if (nextEventToken) {
+          opts.NextToken = nextEventToken;
+        }
+        cf.describeStackEvents(opts, function (err, data) {
+          allEvents = _.union(allEvents, data.StackEvents);
+          nextEventToken = data.NextToken;
+          callback();
+        });
+      }, function () {
+        return !nextEventToken;
+      }, function () {
+        callback(null, allEvents);
+      });
+    };
+
     var cf;
     var noUpdateFlag = false;
+    var previousEvents;
 
     async.waterfall([
       // Check if this should be run on another account
@@ -54,7 +78,7 @@ module.exports = function(grunt) {
           callback();
           return;
         }
-        grunt.log.writeln('Assuming roll: ' + options.assumeRole);
+        grunt.log.writeln('Assuming role: ' + options.assumeRole);
         var sts = new AWS.STS();
         sts.assumeRole({
           RoleArn: options.assumeRole,
@@ -99,15 +123,20 @@ module.exports = function(grunt) {
             .value();
         }
         if (stack) {
-          grunt.log.writeln('Updating CloudFormation stack: ' + options.stackName);
-          cf.updateStack(params, function (err, data) {
-            // ignore errors about no updates
-            if (err && err.message === 'No updates are to be performed.') {
-              grunt.log.writeln('No updates required, retrieving current outputs.');
-              callback(null, 'NO_UPDATES');
-              return;
-            }
-            callback(err, data);
+          // load the list of previous stack events so we can start from the next one
+          loadAllEvents(function (err, data) {
+            previousEvents = data || [];
+
+            grunt.log.writeln('Updating CloudFormation stack: ' + options.stackName);
+            cf.updateStack(params, function (err, data) {
+              // ignore errors about no updates
+              if (err && err.message === 'No updates are to be performed.') {
+                grunt.log.writeln('No updates required, retrieving current outputs.');
+                callback(null, 'NO_UPDATES');
+                return;
+              }
+              callback(err, data);
+            });
           });
         } else {
           grunt.log.writeln('Creating CloudFormation stack: ' + options.stackName);
@@ -121,18 +150,19 @@ module.exports = function(grunt) {
         var events = [];
         grunt.log.writeln('Starting...');
         async.doUntil(function (callback) {
-          cf.describeStackEvents({ StackName: options.stackName }, function (err, data) {
+          loadAllEvents(function (err, data) {
             if (err) {
               grunt.log.writeln('Error:', err);
             }
             // Ignore errors
-            if (data && data.StackEvents) {
-              var newEvents = _.difference(_.pluck(data.StackEvents, 'EventId'), _.pluck(events, 'EventId'));
+            if (data) {
+              var newEvents = _.difference(_.pluck(data, 'EventId'), _.pluck(previousEvents, 'EventId'));
               _.forEach(newEvents, function (item) {
-                var newEvent = _.find(data.StackEvents, {'EventId': item});
+                var newEvent = _.find(data, {'EventId': item});
                 events.push(newEvent);
                 grunt.log.writeln(newEvent.ResourceType, ' - ', newEvent.LogicalResourceId, ' - ', newEvent.ResourceStatus);
               });
+              previousEvents = data;
             }
             cf.describeStacks({ StackName: options.stackName }, function (err, data) {
               if (err) {
