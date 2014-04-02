@@ -122,6 +122,11 @@ module.exports = function(grunt) {
             })
             .value();
         }
+        if (options.replace) {
+          _.each(_.pairs(options.replace), function (item) {
+            params.TemplateBody = params.TemplateBody.replace(item[0], item[1]);
+          });
+        }
         if (stack) {
           // load the list of previous stack events so we can start from the next one
           loadAllEvents(function (err, data) {
